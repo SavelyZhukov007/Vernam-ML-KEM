@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALICE — Отправитель</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --alice: #00ff88;
+            --alice-dim: #00cc6a;
+            --alice-glow: rgba(0, 255, 136, 0.15);
+            --bg: #050a0e;
+            --bg2: #0a1118;
+            --bg3: #0f1923;
+            --border: #1a2d20;
+            --border-active: #00ff88;
+            --text: #c8e8d0;
+            --text-dim: #4a7a5a;
+            --warn: #ffaa00;
+            --error: #ff4466;
+            --ideal: #00ff88;
+            --bad: #ff4466;
+            --panel-bg: rgba(0, 255, 136, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 40px 40px;
+            }
+        }
+
+        .header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 24px;
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), transparent);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .role-badge {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--alice);
+            text-shadow: 0 0 20px var(--alice), 0 0 40px var(--alice-dim);
+            letter-spacing: 4px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                text-shadow: 0 0 20px var(--alice), 0 0 40px var(--alice-dim);
+            }
+
+            50% {
+                text-shadow: 0 0 30px var(--alice), 0 0 60px var(--alice-dim), 0 0 80px var(--alice);
+            }
+        }
+
+        .role-desc {
+            color: var(--text-dim);
+            font-size: 11px;
+        }
+
+        .nav-links {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-link {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            border-color: var(--alice);
+            color: var(--alice);
+        }
+
+        .status-bar {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            padding: 8px 24px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--alice);
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        .status-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .status-val {
+            color: var(--alice);
+            font-weight: 700;
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 380px 1fr 320px;
+            grid-template-rows: auto 1fr;
+            gap: 0;
+            height: calc(100vh - 90px);
+        }
+
+        .panel {
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--alice);
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel-body::-webkit-scrollbar-track {
+            background: var(--bg2);
+        }
+
+        .panel-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        /* Input area */
+        .input-mode-tabs {
+            display: flex;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.2s;
+            border-right: 1px solid var(--border);
+        }
+
+        .tab-btn:last-child {
+            border-right: none;
+        }
+
+        .tab-btn.active {
+            background: var(--alice-glow);
+            color: var(--alice);
+        }
+
+        .textarea-input {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 12px;
+            padding: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+            line-height: 1.5;
+        }
+
+        .textarea-input:focus {
+            border-color: var(--alice);
+        }
+
+        .file-drop {
+            border: 2px dashed var(--border);
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dim);
+        }
+
+        .file-drop:hover,
+        .file-drop.drag-over {
+            border-color: var(--alice);
+            color: var(--alice);
+            background: var(--alice-glow);
+        }
+
+        .file-drop .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        /* Level selector */
+        .level-selector {
+            margin: 12px 0;
+        }
+
+        .level-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .level-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .level-opt {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .level-opt.selected {
+            border-color: var(--alice);
+            background: var(--alice-glow);
+        }
+
+        .level-opt.ideal {
+            border-color: var(--ideal) !important;
+        }
+
+        .level-opt .level-num {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            color: var(--alice);
+        }
+
+        .level-opt .level-name {
+            font-size: 9px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .ideal-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--ideal);
+            color: #000;
+            font-size: 8px;
+            padding: 1px 4px;
+            font-weight: 700;
+        }
+
+        /* Settings */
+        .setting-group {
+            margin: 10px 0;
+        }
+
+        .setting-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 6px 10px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .setting-input:focus {
+            border-color: var(--alice);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        .btn:hover {
+            border-color: var(--alice);
+            color: var(--alice);
+        }
+
+        .btn.primary {
+            border-color: var(--alice);
+            color: var(--alice);
+            background: var(--alice-glow);
+        }
+
+        .btn.primary:hover {
+            background: rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .btn.ideal {
+            border-color: var(--ideal) !important;
+            color: var(--ideal) !important;
+            background: rgba(0, 255, 136, 0.08) !important;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2) !important;
+        }
+
+        .btn.send-btn {
+            margin-top: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+
+        /* Steps viewer */
+        .step-card {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .step-header:hover {
+            background: var(--alice-glow);
+        }
+
+        .step-num {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            color: var(--alice);
+            min-width: 24px;
+        }
+
+        .step-title {
+            font-size: 11px;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .step-chevron {
+            color: var(--text-dim);
+            transition: transform 0.2s;
+        }
+
+        .step-chevron.open {
+            transform: rotate(90deg);
+        }
+
+        .step-body {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+
+        .step-body.open {
+            display: block;
+        }
+
+        .step-desc {
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .step-explain {
+            color: var(--alice);
+            font-size: 10px;
+            line-height: 1.7;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+        }
+
+        .vars-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .vars-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vars-table td:first-child {
+            color: var(--text-dim);
+            width: 40%;
+        }
+
+        .vars-table td:last-child {
+            color: var(--alice);
+            word-break: break-all;
+        }
+
+        .hex-block {
+            background: #000;
+            padding: 8px;
+            font-size: 10px;
+            color: var(--alice-dim);
+            word-break: break-all;
+            line-height: 1.6;
+            margin-top: 8px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        /* Byte log */
+        .byte-log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+
+        .byte-log-row {
+            display: grid;
+            grid-template-columns: 40px 80px 40px 80px 40px;
+            gap: 4px;
+            padding: 2px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .byte-log-row:hover {
+            background: var(--alice-glow);
+        }
+
+        .byte-log-header {
+            color: var(--text-dim);
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border);
+            padding: 4px;
+        }
+
+        .b-idx {
+            color: var(--text-dim);
+        }
+
+        .b-plain {
+            color: #88ccff;
+        }
+
+        .b-key {
+            color: #ffaa44;
+        }
+
+        .b-cipher {
+            color: var(--alice);
+        }
+
+        .b-char {
+            color: var(--text-dim);
+        }
+
+        /* Channel panel */
+        .channel-msg {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .channel-msg::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--alice);
+        }
+
+        .msg-label {
+            font-size: 11px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .msg-meta {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .msg-timer {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: var(--warn);
+            margin-top: 4px;
+        }
+
+        .msg-preview {
+            font-size: 10px;
+            color: var(--alice-dim);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        /* Preview box */
+        .preview-box {
+            background: #000;
+            border: 1px solid var(--alice);
+            padding: 10px;
+            font-size: 11px;
+            color: var(--alice);
+            margin: 8px 0;
+            word-break: break-all;
+            line-height: 1.6;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        /* Result section */
+        .result-section {
+            background: var(--bg3);
+            border: 1px solid var(--alice);
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .result-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            color: var(--alice);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .result-row {
+            display: flex;
+            gap: 8px;
+            margin: 4px 0;
+            align-items: flex-start;
+        }
+
+        .result-key {
+            color: var(--text-dim);
+            min-width: 120px;
+            font-size: 10px;
+        }
+
+        .result-val {
+            color: var(--alice);
+            font-size: 10px;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        /* n-tamper input */
+        .ntamper-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .ntamper-row input {
+            width: 80px;
+            text-align: center;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--alice);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--alice);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Send options */
+        .send-options {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            padding: 10px;
+            margin: 8px 0;
+        }
+
+        .send-opt-title {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 11px;
+        }
+
+        .checkbox-row input {
+            accent-color: var(--alice);
+        }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 12px 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+
+        .badge-ideal {
+            background: var(--ideal);
+            color: #000;
+        }
+
+        .badge-warn {
+            background: var(--warn);
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div>
+            <div class="role-badge">ALICE</div>
+            <div class="role-desc">Отправитель · Инициатор зашифрованного канала</div>
+        </div>
+        <div class="nav-links">
+            <a class="nav-link" href="/bob">BOB</a>
+            <a class="nav-link" href="/eva">EVA</a>
+            <a class="nav-link" href="/">HOME</a>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot"></div><span>ONLINE</span>
+        </div>
+        <div class="status-item">ОТПРАВЛЕНО: <span class="status-val" id="stat-sent">0</span></div>
+        <div class="status-item">В КАНАЛЕ: <span class="status-val" id="stat-channel">0</span></div>
+        <div class="status-item">ЕВА СЛУШАЕТ: <span class="status-val" style="color:var(--error)">ДА</span></div>
+        <div style="margin-left:auto; font-size:10px; color:var(--text-dim)" id="clock"></div>
+    </div>
+
+    <div class="main">
+        <!-- LEFT: Input & Settings -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">ВВОД ДАННЫХ</span>
+            </div>
+            <div class="panel-body">
+
+                <!-- Input mode -->
+                <div class="input-mode-tabs">
+                    <button class="tab-btn active" onclick="switchTab('text')">ТЕКСТ</button>
+                    <button class="tab-btn" onclick="switchTab('file')">ФАЙЛ</button>
+                </div>
+
+                <div id="text-input-area">
+                    <textarea class="textarea-input" id="plaintext"
+                        placeholder="Введите сообщение для Боба...&#10;&#10;Это может быть любой текст."
+                        rows="7"></textarea>
+                </div>
+
+                <div id="file-input-area" style="display:none">
+                    <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+                        <div class="icon">📁</div>
+                        <div>Нажмите или перетащите файл</div>
+                        <div style="font-size:10px;margin-top:4px;color:var(--text-dim)">Любой тип файла</div>
+                    </div>
+                    <input type="file" id="file-input" style="display:none" onchange="handleFile(this)">
+                    <div id="file-info" style="display:none; margin-top:8px; color:var(--alice); font-size:11px;"></div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Level selector -->
+                <div class="level-selector">
+                    <div class="level-label">УРОВЕНЬ ШИФРОВАНИЯ</div>
+                    <div class="level-options">
+                        <div class="level-opt" onclick="setLevel(1)" id="lvl-1">
+                            <div class="level-num">L1</div>
+                            <div class="level-name">ПРЕДПРОСМОТР<br>Первые 100 символов</div>
+                        </div>
+                        <div class="level-opt" onclick="setLevel(2)" id="lvl-2">
+                            <div class="level-num">L2</div>
+                            <div class="level-name">VERBOSE<br>Все переменные</div>
+                        </div>
+                        <div class="level-opt" onclick="setLevel(3)" id="lvl-3">
+                            <div class="level-num">L3</div>
+                            <div class="level-name">REVERSIBLE<br>Два файла</div>
+                        </div>
+                        <div class="level-opt selected ideal" onclick="setLevel(4)" id="lvl-4">
+                            <div class="ideal-badge">IDEAL</div>
+                            <div class="level-num">L4</div>
+                            <div class="level-name">ML-KEM FULL<br>Постквантовый</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Settings -->
+                <div class="setting-group">
+                    <div class="setting-label">HKDF INFO (МЕТКА КОНТЕКСТА)</div>
+                    <input class="setting-input" id="hkdf-info" value="hybrid-otp-derivation-2026"
+                        placeholder="HKDF info string">
+                </div>
+
+                <!-- Level 3 options -->
+                <div id="reversible-opts" style="display:none">
+                    <div class="setting-label">ПАРАМЕТРЫ REVERSIBLE (L3)</div>
+                    <div class="ntamper-row">
+                        <span style="color:var(--text-dim);font-size:11px">N изменённых байт:</span>
+                        <input class="setting-input" id="n-tamper" type="number" value="5" min="1" style="width:80px">
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <button class="btn primary" onclick="doEncrypt()">⚡ ЗАШИФРОВАТЬ</button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Выполняется ML-KEM...</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CENTER: Steps & Result -->
+        <div class="panel" style="border-right:none">
+            <div class="panel-header">
+                <span class="panel-title">ПРОЦЕСС ШИФРОВАНИЯ</span>
+                <span id="steps-count" style="font-size:10px;color:var(--text-dim)"></span>
+            </div>
+            <div class="panel-body" id="steps-panel">
+                <div style="color:var(--text-dim); text-align:center; padding:40px 20px; font-size:11px;">
+                    Введите текст или загрузите файл и нажмите<br>
+                    <span style="color:var(--alice)">⚡ ЗАШИФРОВАТЬ</span><br><br>
+                    Здесь появятся все шаги алгоритма<br>с подробными объяснениями на русском языке.
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Channel & Send -->
+        <div class="panel" style="border-right:none">
+            <div class="panel-header">
+                <span class="panel-title">КАНАЛ СВЯЗИ</span>
+            </div>
+            <div class="panel-body">
+
+                <div id="send-section" style="display:none">
+                    <div class="result-section">
+                        <div class="result-title">РЕЗУЛЬТАТ</div>
+                        <div class="result-row">
+                            <div class="result-key">Превью (100 символов):</div>
+                        </div>
+                        <div class="preview-box" id="preview-box">—</div>
+                        <div class="result-row">
+                            <div class="result-key">Шифртекст (HEX):</div>
+                        </div>
+                        <div class="hex-block" id="ct-hex">—</div>
+                        <div class="result-row">
+                            <div class="result-key">Shared Secret:</div>
+                            <div class="result-val" id="ss-hex">—</div>
+                        </div>
+                        <div class="result-row">
+                            <div class="result-key">OTP Key (32 байта):</div>
+                            <div class="result-val" id="otp-hex">—</div>
+                        </div>
+                        <div class="result-row">
+                            <div class="result-key">MAC:</div>
+                            <div class="result-val" id="mac-val">—</div>
+                        </div>
+                        <div class="result-row">
+                            <div class="result-key">Кодировка:</div>
+                            <div class="result-val" id="enc-val">—</div>
+                        </div>
+                    </div>
+
+                    <div id="reversible-result" style="display:none">
+                        <div class="result-section" style="border-color:var(--warn)">
+                            <div class="result-title" style="color:var(--warn)">REVERSIBLE ПАРА</div>
+                            <div id="rev-info" style="font-size:10px;color:var(--text-dim);margin-bottom:8px;"></div>
+                            <button class="btn" onclick="downloadFile('correct')">⬇ Скачать CORRECT файл</button>
+                            <button class="btn" onclick="downloadFile('tampered')">⬇ Скачать TAMPERED файл</button>
+                        </div>
+                    </div>
+
+                    <hr class="divider">
+
+                    <div class="send-options">
+                        <div class="send-opt-title">ПАРАМЕТРЫ ОТПРАВКИ</div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="send-ideal" checked>
+                            <label for="send-ideal">Отметить как идеальное шифрование</label>
+                        </div>
+                        <div class="setting-group" style="margin-top:8px">
+                            <div class="setting-label">МЕТКА СООБЩЕНИЯ</div>
+                            <input class="setting-input" id="msg-label" value="Зашифрованное сообщение от Алисы">
+                        </div>
+                    </div>
+
+                    <button class="btn primary send-btn ideal" onclick="sendToChannel()">
+                        📡 ОТПРАВИТЬ БОБУ
+                    </button>
+                    <div style="font-size:9px;color:var(--text-dim);text-align:center;margin-top:4px">
+                        Доступно всем (включая Еве) в течение 20 секунд
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Channel messages -->
+                <div class="panel-title" style="margin-bottom:8px">В КАНАЛЕ СЕЙЧАС</div>
+                <div id="channel-list">
+                    <div style="color:var(--text-dim);font-size:11px;text-align:center;padding:20px;">
+                        Канал пуст
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 4;
+        let currentMode = 'text';
+        let encryptResult = null;
+        let fileData = null;
+        let fileB64 = null;
+        let correctB64 = null;
+        let tamperedB64 = null;
+        let packedB64 = null;
+
+        // Clock
+        function updateClock() {
+            document.getElementById('clock').textContent = new Date().toLocaleTimeString('ru-RU');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function switchTab(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === (mode === 'text' ? 0 : 1)));
+            document.getElementById('text-input-area').style.display = mode === 'text' ? '' : 'none';
+            document.getElementById('file-input-area').style.display = mode === 'file' ? '' : 'none';
+        }
+
+        function setLevel(n) {
+            currentLevel = n;
+            document.querySelectorAll('.level-opt').forEach((el, i) => {
+                el.classList.toggle('selected', i === n - 1);
+            });
+            document.getElementById('reversible-opts').style.display = n === 3 ? '' : 'none';
+        }
+
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                fileData = e.target.result;
+                fileB64 = fileData.split(',')[1];
+                document.getElementById('file-info').style.display = '';
+                document.getElementById('file-info').textContent = `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // File drop
+        const dropZone = document.getElementById('file-drop');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault(); dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            document.getElementById('file-input').files = e.dataTransfer.files;
+            handleFile(document.getElementById('file-input'));
+        });
+
+        async function doEncrypt() {
+            let data_b64;
+            let file_name = null;
+
+            if (currentMode === 'text') {
+                const text = document.getElementById('plaintext').value;
+                if (!text.trim()) { alert('Введите текст'); return; }
+                data_b64 = btoa(unescape(encodeURIComponent(text)));
+            } else {
+                if (!fileB64) { alert('Выберите файл'); return; }
+                data_b64 = fileB64;
+                file_name = document.getElementById('file-info').textContent.replace('📎 ', '').split(' ')[0];
+            }
+
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('steps-panel').innerHTML = '';
+
+            const payload = {
+                data_b64,
+                level: currentLevel,
+                file_name,
+                custom_info: document.getElementById('hkdf-info').value,
+            };
+
+            try {
+                const resp = await fetch('/api/encrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                encryptResult = await resp.json();
+
+                if (!encryptResult.success) {
+                    alert('Ошибка: ' + encryptResult.error);
+                    return;
+                }
+
+                packedB64 = encryptResult.packed_b64;
+                renderSteps(encryptResult);
+                renderResult(encryptResult);
+
+                if (currentLevel === 3) {
+                    await makeReversible();
+                }
+
+                document.getElementById('send-section').style.display = '';
+                document.getElementById('steps-count').textContent = `${encryptResult.steps.length} шагов`;
+
+            } catch (e) {
+                alert('Ошибка соединения: ' + e.message);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function renderSteps(result) {
+            const panel = document.getElementById('steps-panel');
+            let html = '';
+
+            result.steps.forEach(step => {
+                html += `
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">${step.step_num < 10 ? '0' + step.step_num : step.step_num}</div>
+        <div class="step-title">${step.title}</div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="step-desc">${step.description}</div>
+        ${step.explanation ? `<div class="step-explain">${step.explanation}</div>` : ''}
+        ${renderVars(step.variables)}
+        ${step.hex_data ? `<div class="hex-block">${step.hex_data}</div>` : ''}
+      </div>
+    </div>`;
+            });
+
+            // Byte-by-byte log
+            if (result.per_byte_log && result.per_byte_log.length > 0) {
+                html += `
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">XOR</div>
+        <div class="step-title">Побайтовое шифрование (XOR)</div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="step-explain">Каждый байт открытого текста XOR-ится с байтом OTP-ключа.
+P = открытый текст, K = ключ, C = шифртекст.
+Бинарные представления показывают XOR побитово.</div>
+        <div class="byte-log-container">
+          <div class="byte-log-row byte-log-header">
+            <span class="b-idx">#</span>
+            <span class="b-plain">P (дек/bin)</span>
+            <span class="b-key">K</span>
+            <span class="b-cipher">C</span>
+            <span class="b-char">char</span>
+          </div>
+          ${result.per_byte_log.slice(0, 200).map(b => `
+          <div class="byte-log-row">
+            <span class="b-idx">${b.idx}</span>
+            <span class="b-plain">${b.p_dec} ${b.p_bin}</span>
+            <span class="b-key">${b.k_dec}</span>
+            <span class="b-cipher">${b.c_dec} ${b.c_bin}</span>
+            <span class="b-char">${b.p_char}→${b.c_char}</span>
+          </div>`).join('')}
+          ${result.per_byte_log.length > 200 ? `<div style="color:var(--text-dim);padding:8px;text-align:center;font-size:10px">... ещё ${result.per_byte_log.length - 200} байт (показаны первые 200)</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+            }
+
+            panel.innerHTML = html;
+        }
+
+        function renderVars(vars) {
+            if (!vars || Object.keys(vars).length === 0) return '';
+            let rows = Object.entries(vars).map(([k, v]) =>
+                `<tr><td>${k}</td><td>${typeof v === 'object' ? JSON.stringify(v) : String(v).slice(0, 120)}</td></tr>`
+            ).join('');
+            return `<table class="vars-table"><tbody>${rows}</tbody></table>`;
+        }
+
+        function toggleStep(header) {
+            const body = header.nextElementSibling;
+            const chevron = header.querySelector('.step-chevron');
+            body.classList.toggle('open');
+            chevron.classList.toggle('open');
+        }
+
+        function renderResult(r) {
+            document.getElementById('preview-box').textContent = r.preview_100 || '(нет текстового превью — бинарный файл)';
+            document.getElementById('ct-hex').textContent = (r.ciphertext_hex || '').slice(0, 256) + '...';
+            document.getElementById('ss-hex').textContent = (r.shared_secret_hex || '').slice(0, 64) + '...';
+            document.getElementById('otp-hex').textContent = (r.otp_key_hex || '').slice(0, 64) + '...';
+            document.getElementById('mac-val').textContent = r.mac || '—';
+            document.getElementById('enc-val').textContent = r.encoding || 'binary';
+        }
+
+        async function makeReversible() {
+            const n = parseInt(document.getElementById('n-tamper').value) || 5;
+            const resp = await fetch('/api/reversible', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ packed_b64: packedB64, n_tamper: n })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                correctB64 = data.correct_b64;
+                tamperedB64 = data.tampered_b64;
+                document.getElementById('reversible-result').style.display = '';
+                document.getElementById('rev-info').textContent =
+                    `Изменено ${data.n_tampered} байт в позициях: ${data.tampered_positions.slice(0, 10).join(', ')}...`;
+            }
+        }
+
+        function downloadFile(type) {
+            const b64 = type === 'correct' ? correctB64 : tamperedB64;
+            const name = type === 'correct' ? 'correct_encrypted.bin' : 'tampered_encrypted.bin';
+            const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            const blob = new Blob([bytes], { type: 'application/octet-stream' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = name; a.click();
+        }
+
+        async function sendToChannel() {
+            if (!packedB64) { alert('Сначала зашифруйте данные'); return; }
+            const isIdeal = document.getElementById('send-ideal').checked;
+            const label = document.getElementById('msg-label').value;
+
+            const resp = await fetch('/api/channel/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    packed_b64: packedB64,
+                    sender: 'alice',
+                    recipient: 'bob',
+                    label,
+                    preview: encryptResult?.preview_100 || '',
+                    level: currentLevel,
+                    is_ideal: isIdeal,
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                document.getElementById('stat-sent').textContent = parseInt(document.getElementById('stat-sent').textContent) + 1;
+                alert(`✅ Отправлено! ID: ${data.msg_id}\nДоступно ${data.expires_in} секунд`);
+                pollChannel();
+            }
+        }
+
+        // Channel polling
+        async function pollChannel() {
+            try {
+                const [status, channel] = await Promise.all([
+                    fetch('/api/status').then(r => r.json()),
+                    fetch('/api/channel/list').then(r => r.json())
+                ]);
+                document.getElementById('stat-sent').textContent = status.alice_sent;
+                document.getElementById('stat-channel').textContent = channel.count;
+                renderChannelList(channel.messages);
+            } catch (e) { }
+        }
+
+        function renderChannelList(msgs) {
+            const el = document.getElementById('channel-list');
+            if (!msgs || msgs.length === 0) {
+                el.innerHTML = '<div style="color:var(--text-dim);font-size:11px;text-align:center;padding:20px;">Канал пуст</div>';
+                return;
+            }
+            el.innerHTML = msgs.map(m => `
+    <div class="channel-msg">
+      <div class="msg-label">${m.label} ${m.is_ideal ? '<span class="badge badge-ideal">IDEAL</span>' : '<span class="badge badge-warn">L' + m.level + '</span>'}</div>
+      <div class="msg-meta">${m.sender.toUpperCase()} → ${m.recipient.toUpperCase()} · ${(m.size_bytes / 1024).toFixed(1)} KB</div>
+      <div class="msg-timer" id="timer-${m.id}">⏱ ${m.expires_in.toFixed(0)}с</div>
+      ${m.preview ? `<div class="msg-preview">${m.preview}</div>` : ''}
+    </div>
+  `).join('');
+
+            msgs.forEach(m => {
+                let rem = m.expires_in;
+                const el = document.getElementById('timer-' + m.id);
+                const iv = setInterval(() => {
+                    rem -= 1;
+                    if (el) el.textContent = `⏱ ${Math.max(0, rem.toFixed(0))}с`;
+                    if (rem <= 0) { clearInterval(iv); pollChannel(); }
+                }, 1000);
+            });
+        }
+
+        setInterval(pollChannel, 5000);
+        pollChannel();
+    </script>
+</body>
+
+</html>

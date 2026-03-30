@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRYPTO SYSTEM — ML-KEM + OTP</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --bg: #050810;
+            --alice: #00ff88;
+            --bob: #4488ff;
+            --eva: #ff4455;
+            --text: #a0b0c0;
+            --border: #1a2030;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(68, 136, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(68, 136, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: g 30s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes g {
+            0% {
+                background-position: 0 0
+            }
+
+            100% {
+                background-position: 50px 50px
+            }
+        }
+
+        .title {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-align: center;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, var(--alice), var(--bob), var(--eva));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            font-size: 11px;
+            color: #3a5060;
+            text-align: center;
+            margin-bottom: 48px;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cards {
+            display: flex;
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            width: 220px;
+            padding: 32px 24px;
+            border: 1px solid var(--border);
+            text-decoration: none;
+            color: inherit;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card.alice::before {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), transparent);
+        }
+
+        .card.bob::before {
+            background: linear-gradient(135deg, rgba(68, 136, 255, 0.08), transparent);
+        }
+
+        .card.eva::before {
+            background: linear-gradient(135deg, rgba(255, 68, 85, 0.08), transparent);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card.alice:hover {
+            border-color: var(--alice);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.15);
+        }
+
+        .card.bob:hover {
+            border-color: var(--bob);
+            box-shadow: 0 0 30px rgba(68, 136, 255, 0.15);
+        }
+
+        .card.eva:hover {
+            border-color: var(--eva);
+            box-shadow: 0 0 30px rgba(255, 68, 85, 0.15);
+        }
+
+        .card-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .alice .card-name {
+            color: var(--alice);
+        }
+
+        .bob .card-name {
+            color: var(--bob);
+        }
+
+        .eva .card-name {
+            color: var(--eva);
+        }
+
+        .card-role {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: #3a5060;
+            margin-bottom: 16px;
+        }
+
+        .card-desc {
+            font-size: 10px;
+            color: #4a6070;
+            line-height: 1.7;
+        }
+
+        .status {
+            margin-top: 32px;
+            font-size: 10px;
+            color: #2a4050;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title">ML-KEM CRYPTO SYSTEM</div>
+    <div class="subtitle">ПОСТКВАНТОВОЕ ШИФРОВАНИЕ · ШИФР ВЕРНАМА · СИМУЛЯЦИЯ КАНАЛА СВЯЗИ</div>
+    <div class="cards">
+        <a class="card alice" href="/alice">
+            <div class="card-name">ALICE</div>
+            <div class="card-role">ОТПРАВИТЕЛЬ</div>
+            <div class="card-desc">Шифрование данных с ML-KEM + OTP. Настройка уровня шифрования. Отправка в канал.
+            </div>
+        </a>
+        <a class="card bob" href="/bob">
+            <div class="card-name">BOB</div>
+            <div class="card-role">ПОЛУЧАТЕЛЬ</div>
+            <div class="card-desc">Расшифровка входящих сообщений. Верификация MAC. Анализ криптографических данных.
+            </div>
+        </a>
+        <a class="card eva" href="/eva">
+            <div class="card-name">EVA</div>
+            <div class="card-role">ПЕРЕХВАТЧИК</div>
+            <div class="card-desc">Мониторинг канала. Попытки взлома. Анализ слабых уровней шифрования.</div>
+        </a>
+    </div>
+    <div class="status" id="status">Загрузка статуса...</div>
+    <script>
+        async function updateStatus() {
+            try {
+                const s = await fetch('/api/status').then(r => r.json());
+                document.getElementById('status').textContent =
+                    `КАНАЛ: ${s.channel_messages} сообщений · АЛИСА ОТПРАВИЛА: ${s.alice_sent} · ЕВА ПЕРЕХВАТИЛА: ${s.eva_intercepted} · ВЗЛОМАНО: ${s.eva_cracked}`;
+            } catch (e) { document.getElementById('status').textContent = 'Сервер не запущен'; }
+        }
+        setInterval(updateStatus, 3000); updateStatus();
+    </script>
+</body>
+
+</html>

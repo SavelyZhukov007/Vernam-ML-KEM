@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOB — Получатель</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --bob: #4488ff;
+            --bob-dim: #2266dd;
+            --bob-glow: rgba(68, 136, 255, 0.12);
+            --bg: #050810;
+            --bg2: #080c18;
+            --bg3: #0c1020;
+            --border: #1a2040;
+            --border-active: #4488ff;
+            --text: #c0ccf0;
+            --text-dim: #3a4a80;
+            --warn: #ffaa00;
+            --error: #ff4466;
+            --success: #00ff88;
+            --panel-bg: rgba(68, 136, 255, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(68, 136, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(68, 136, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridMove 25s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% {
+                background-position: 0 0
+            }
+
+            100% {
+                background-position: 40px 40px
+            }
+        }
+
+        .header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 24px;
+            background: linear-gradient(90deg, rgba(68, 136, 255, 0.1), transparent);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .role-badge {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--bob);
+            text-shadow: 0 0 20px var(--bob), 0 0 40px var(--bob-dim);
+            letter-spacing: 4px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                text-shadow: 0 0 20px var(--bob), 0 0 40px var(--bob-dim)
+            }
+
+            50% {
+                text-shadow: 0 0 30px var(--bob), 0 0 60px var(--bob-dim), 0 0 80px var(--bob)
+            }
+        }
+
+        .role-desc {
+            color: var(--text-dim);
+            font-size: 11px;
+        }
+
+        .nav-links {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-link {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            border-color: var(--bob);
+            color: var(--bob);
+        }
+
+        .status-bar {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            padding: 8px 24px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--bob);
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        .status-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .status-val {
+            color: var(--bob);
+            font-weight: 700;
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 340px 1fr 340px;
+            height: calc(100vh - 90px);
+        }
+
+        .panel {
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--bob);
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .panel-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        /* Channel messages */
+        .channel-msg {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .channel-msg:hover {
+            border-color: var(--bob);
+            background: var(--bob-glow);
+        }
+
+        .channel-msg::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--bob);
+        }
+
+        .channel-msg.ideal::before {
+            background: var(--success);
+        }
+
+        .msg-label {
+            font-size: 11px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .msg-meta {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .msg-timer {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: var(--warn);
+            margin-top: 4px;
+        }
+
+        .msg-preview {
+            font-size: 10px;
+            color: rgba(68, 136, 255, 0.6);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+
+        .badge-ideal {
+            background: var(--success);
+            color: #000;
+        }
+
+        .badge-warn {
+            background: var(--warn);
+            color: #000;
+        }
+
+        /* Upload own file */
+        .file-drop {
+            border: 2px dashed var(--border);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dim);
+        }
+
+        .file-drop:hover {
+            border-color: var(--bob);
+            color: var(--bob);
+            background: var(--bob-glow);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-top: 6px;
+        }
+
+        .btn:hover {
+            border-color: var(--bob);
+            color: var(--bob);
+        }
+
+        .btn.primary {
+            border-color: var(--bob);
+            color: var(--bob);
+            background: var(--bob-glow);
+        }
+
+        .btn.primary:hover {
+            background: rgba(68, 136, 255, 0.2);
+            box-shadow: 0 0 20px rgba(68, 136, 255, 0.2);
+        }
+
+        .btn.ideal {
+            border-color: var(--success) !important;
+            color: var(--success) !important;
+            background: rgba(0, 255, 136, 0.08) !important;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2) !important;
+        }
+
+        /* Decryption result */
+        .decrypt-result {
+            background: var(--bg3);
+            border: 1px solid var(--success);
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .decrypt-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            color: var(--success);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .plaintext-box {
+            background: #000;
+            border: 1px solid var(--success);
+            padding: 10px;
+            font-size: 11px;
+            color: var(--success);
+            margin: 8px 0;
+            word-break: break-all;
+            line-height: 1.7;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .result-row {
+            display: flex;
+            gap: 8px;
+            margin: 4px 0;
+            align-items: flex-start;
+        }
+
+        .result-key {
+            color: var(--text-dim);
+            min-width: 140px;
+            font-size: 10px;
+        }
+
+        .result-val {
+            color: var(--bob);
+            font-size: 10px;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .hex-block {
+            background: #000;
+            padding: 8px;
+            font-size: 10px;
+            color: rgba(68, 136, 255, 0.6);
+            word-break: break-all;
+            line-height: 1.6;
+            margin-top: 8px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        /* MAC verification */
+        .mac-ok {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .mac-fail {
+            color: var(--error);
+            font-weight: 700;
+        }
+
+        /* File binary display */
+        .binary-display {
+            background: #000;
+            padding: 8px;
+            font-size: 9px;
+            color: rgba(68, 136, 255, 0.5);
+            word-break: break-all;
+            line-height: 1.5;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 8px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Step log for decrypt */
+        .step-card {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            margin-bottom: 6px;
+            overflow: hidden;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .step-header:hover {
+            background: var(--bob-glow);
+        }
+
+        .step-num {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            color: var(--bob);
+            min-width: 24px;
+        }
+
+        .step-title {
+            font-size: 11px;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .step-chevron {
+            color: var(--text-dim);
+            transition: transform 0.2s;
+        }
+
+        .step-chevron.open {
+            transform: rotate(90deg);
+        }
+
+        .step-body {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+
+        .step-body.open {
+            display: block;
+        }
+
+        .step-explain {
+            color: var(--bob);
+            font-size: 10px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        .vars-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .vars-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vars-table td:first-child {
+            color: var(--text-dim);
+            width: 40%;
+        }
+
+        .vars-table td:last-child {
+            color: var(--bob);
+            word-break: break-all;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 12px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--bob);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--bob);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        .ideal-hint {
+            background: rgba(0, 255, 136, 0.06);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 8px;
+            font-size: 10px;
+            color: var(--success);
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div>
+            <div class="role-badge">BOB</div>
+            <div class="role-desc">Получатель · Расшифровка и верификация</div>
+        </div>
+        <div class="nav-links">
+            <a class="nav-link" href="/alice">ALICE</a>
+            <a class="nav-link" href="/eva">EVA</a>
+            <a class="nav-link" href="/">HOME</a>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot"></div><span>LISTENING</span>
+        </div>
+        <div class="status-item">ПОЛУЧЕНО: <span class="status-val" id="stat-received">0</span></div>
+        <div class="status-item">В КАНАЛЕ: <span class="status-val" id="stat-channel">0</span></div>
+        <div style="margin-left:auto; font-size:10px; color:var(--text-dim)" id="clock"></div>
+    </div>
+
+    <div class="main">
+        <!-- LEFT: Channel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">ВХОДЯЩИЕ СООБЩЕНИЯ</span>
+                <button class="btn" style="width:auto;padding:3px 10px;margin:0;font-size:10px"
+                    onclick="pollChannel()">↻</button>
+            </div>
+            <div class="panel-body">
+
+                <div class="ideal-hint">
+                    💡 Идеальная расшифровка: загрузить сообщение ML-KEM L4 → проверить MAC → расшифровать
+                </div>
+
+                <div id="channel-list">
+                    <div style="color:var(--text-dim);font-size:11px;text-align:center;padding:30px;">
+                        Ожидание сообщений от Алисы...
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Manual upload -->
+                <div class="panel-title" style="margin-bottom:8px">ЗАГРУЗИТЬ ФАЙЛ ВРУЧНУЮ</div>
+                <div class="file-drop" onclick="document.getElementById('manual-file').click()">
+                    <div style="font-size:20px;margin-bottom:4px">📂</div>
+                    <div>Загрузить .bin файл</div>
+                    <div style="font-size:10px;margin-top:2px;color:var(--text-dim)">Зашифрованный бинарник</div>
+                </div>
+                <input type="file" id="manual-file" style="display:none" onchange="loadManualFile(this)">
+                <div id="manual-file-info" style="display:none;margin-top:6px;color:var(--bob);font-size:11px;"></div>
+                <button class="btn primary ideal" id="manual-decrypt-btn" style="display:none"
+                    onclick="decryptManual()">
+                    🔓 РАСШИФРОВАТЬ ФАЙЛ
+                </button>
+
+            </div>
+        </div>
+
+        <!-- CENTER: Decryption result & steps -->
+        <div class="panel" style="border-right:none">
+            <div class="panel-header">
+                <span class="panel-title">ПРОЦЕСС РАСШИФРОВКИ</span>
+            </div>
+            <div class="panel-body" id="decrypt-panel">
+                <div style="color:var(--text-dim); text-align:center; padding:40px 20px; font-size:11px;">
+                    Выберите сообщение из канала<br>или загрузите файл вручную.<br><br>
+                    <span style="color:var(--bob)">Здесь появится полная расшифровка</span><br>
+                    с верификацией MAC и всеми ключами.
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Key details -->
+        <div class="panel" style="border-right:none">
+            <div class="panel-header">
+                <span class="panel-title">КРИПТОГРАФИЧЕСКИЕ ДАННЫЕ</span>
+            </div>
+            <div class="panel-body" id="crypto-panel">
+                <div style="color:var(--text-dim);font-size:11px;text-align:center;padding:30px;">
+                    Данные появятся после расшифровки
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let manualFileB64 = null;
+        let receivedCount = 0;
+
+        function updateClock() {
+            document.getElementById('clock').textContent = new Date().toLocaleTimeString('ru-RU');
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        async function pollChannel() {
+            try {
+                const [status, channel] = await Promise.all([
+                    fetch('/api/status').then(r => r.json()),
+                    fetch('/api/channel/list').then(r => r.json())
+                ]);
+                document.getElementById('stat-channel').textContent = channel.count;
+                renderChannelList(channel.messages);
+            } catch (e) { }
+        }
+
+        function renderChannelList(msgs) {
+            const el = document.getElementById('channel-list');
+            if (!msgs || msgs.length === 0) {
+                el.innerHTML = '<div style="color:var(--text-dim);font-size:11px;text-align:center;padding:20px;">Канал пуст — ожидание...</div>';
+                return;
+            }
+            el.innerHTML = msgs.map(m => `
+    <div class="channel-msg ${m.is_ideal ? 'ideal' : ''}" onclick="downloadAndDecrypt('${m.id}')">
+      <div class="msg-label">
+        ${m.label}
+        ${m.is_ideal ? '<span class="badge badge-ideal">IDEAL L' + m.level + '</span>' : '<span class="badge badge-warn">L' + m.level + '</span>'}
+      </div>
+      <div class="msg-meta">${m.sender.toUpperCase()} → ${m.recipient.toUpperCase()} · ${(m.size_bytes / 1024).toFixed(1)} KB</div>
+      <div class="msg-timer" id="btimer-${m.id}">⏱ ${m.expires_in.toFixed(0)}с</div>
+      ${m.preview ? `<div class="msg-preview">${m.preview}</div>` : ''}
+      <div style="font-size:9px;color:var(--bob);margin-top:4px">↓ Нажмите для расшифровки</div>
+    </div>
+  `).join('');
+
+            msgs.forEach(m => {
+                let rem = m.expires_in;
+                const timerEl = document.getElementById('btimer-' + m.id);
+                const iv = setInterval(() => {
+                    rem -= 1;
+                    if (timerEl) timerEl.textContent = `⏱ ${Math.max(0, rem.toFixed(0))}с`;
+                    if (rem <= 0) { clearInterval(iv); pollChannel(); }
+                }, 1000);
+            });
+        }
+
+        async function downloadAndDecrypt(msgId) {
+            try {
+                const resp = await fetch(`/api/channel/download/${msgId}`);
+                const data = await resp.json();
+                if (!data.success) { alert('Ошибка: ' + data.error); return; }
+                await doDecrypt(data.packed_b64);
+            } catch (e) { alert('Ошибка: ' + e.message); }
+        }
+
+        function loadManualFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                manualFileB64 = e.target.result.split(',')[1];
+                document.getElementById('manual-file-info').style.display = '';
+                document.getElementById('manual-file-info').textContent = `📎 ${file.name}`;
+                document.getElementById('manual-decrypt-btn').style.display = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function decryptManual() {
+            if (!manualFileB64) return;
+            doDecrypt(manualFileB64);
+        }
+
+        async function doDecrypt(packedB64) {
+            const panel = document.getElementById('decrypt-panel');
+            panel.innerHTML = '<div class="loading active"><div class="spinner"></div><div>Расшифровка ML-KEM...</div></div>';
+
+            try {
+                const resp = await fetch('/api/decrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ packed_b64: packedB64 })
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    panel.innerHTML = `<div style="color:var(--error);padding:20px;">Ошибка расшифровки: ${data.error}</div>`;
+                    return;
+                }
+
+                receivedCount++;
+                document.getElementById('stat-received').textContent = receivedCount;
+
+                renderDecryptResult(data);
+                renderCryptoPanel(data);
+            } catch (e) {
+                panel.innerHTML = `<div style="color:var(--error);padding:20px;">Ошибка: ${e.message}</div>`;
+            }
+        }
+
+        function renderDecryptResult(data) {
+            const panel = document.getElementById('decrypt-panel');
+            const macStatus = data.mac ? '✅ MAC присутствует' : '⚠️ MAC не верифицирован';
+
+            let plainDisplay = '';
+            if (data.text) {
+                plainDisplay = `<div class="plaintext-box">${escHtml(data.text)}</div>`;
+            } else {
+                const bytes = atob(data.plaintext_b64);
+                const hex = Array.from(bytes).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+                plainDisplay = `<div class="binary-display">${hex}</div>`;
+            }
+
+            panel.innerHTML = `
+    <div class="decrypt-result">
+      <div class="decrypt-title">✅ РАСШИФРОВКА ЗАВЕРШЕНА</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">
+        ${data.text ? `Кодировка: <span style="color:var(--bob)">${data.encoding}</span>` : 'Бинарный файл'}
+        · Уровень шифрования: <span style="color:var(--bob)">L${data.level}</span>
+      </div>
+      ${plainDisplay}
+      <div class="result-row"><div class="result-key">MAC статус:</div><div class="result-val mac-ok">${macStatus}</div></div>
+      <div class="result-row"><div class="result-key">Timestamp:</div><div class="result-val">${new Date(data.timestamp * 1000).toLocaleString('ru-RU')}</div></div>
+    </div>
+
+    <div style="margin-top:12px">
+      ${renderDecryptSteps()}
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn primary" onclick="downloadPlaintext('${data.plaintext_b64}', '${data.encoding || ''}')">
+        ⬇ Скачать расшифрованный файл
+      </button>
+    </div>
+  `;
+        }
+
+        function renderDecryptSteps() {
+            const steps = [
+                { n: '01', t: 'ML-KEM Decapsulate', e: 'Боб использует свой закрытый ключ sk для извлечения shared_secret из kem_ciphertext.\ndecapsulate(sk, kem_ct) → shared_secret\nДаже если перехватчик знает kem_ct, без sk он не получит shared_secret.' },
+                { n: '02', t: 'HKDF Key Derivation', e: 'Из shared_secret и salt восстанавливается OTP-ключ той же длины что шифртекст.\nHKDF-Extract(salt, shared_secret) → PRK\nHKDF-Expand(PRK, len) → OTP-ключ' },
+                { n: '03', t: 'Верификация MAC', e: 'HMAC-SHA256(mac_key, ciphertext) сравнивается с ожидаемым MAC.\nЕсли они совпадают — данные не были изменены в канале.\nЕсли отличаются — возможна атака или повреждение данных.' },
+                { n: '04', t: 'XOR Расшифровка', e: 'plaintext[i] = ciphertext[i] XOR otp_key[i]\nXOR — симметричная операция: (P XOR K) XOR K = P\nВосстановленные данные — оригинальное сообщение Алисы.' },
+            ];
+
+            return steps.map(s => `
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num">${s.n}</div>
+        <div class="step-title">${s.t}</div>
+        <div class="step-chevron">▶</div>
+      </div>
+      <div class="step-body">
+        <div class="step-explain">${s.e}</div>
+      </div>
+    </div>
+  `).join('');
+        }
+
+        function renderCryptoPanel(data) {
+            const panel = document.getElementById('crypto-panel');
+            panel.innerHTML = `
+    <div style="font-size:10px; color:var(--text-dim); margin-bottom:12px;">
+      Все криптографические данные, восстановленные при расшифровке:
+    </div>
+
+    ${renderKV('Shared Secret (первые 32 байта)', data.shared_secret)}
+    ${renderKV('OTP Key (первые 32 байта)', data.otp_key)}
+    ${renderKV('Salt', data.salt)}
+    ${renderKV('Nonce', data.nonce)}
+    ${renderKV('MAC (HMAC-SHA256)', data.mac)}
+
+    <hr class="divider">
+
+    <div class="panel-title" style="margin-bottom:8px">HEX ДАННЫХ</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">Шифртекст (первые 128 байт):</div>
+    <div class="hex-block">${data.plaintext_hex ? data.plaintext_hex.slice(0, 256) : '—'}</div>
+
+    <hr class="divider">
+
+    <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.3);padding:10px;font-size:10px;color:var(--success)">
+      <div style="font-weight:700;margin-bottom:6px">💡 ИДЕАЛЬНОЕ ДЕШИФРОВАНИЕ</div>
+      ✅ ML-KEM decapsulate — постквантово стойко<br>
+      ✅ HKDF восстановление ключа из shared_secret<br>
+      ✅ MAC верификация целостности<br>
+      ✅ OTP XOR расшифровка
+    </div>
+  `;
+        }
+
+        function renderKV(label, val) {
+            return `
+    <div class="result-row">
+      <div class="result-key">${label}:</div>
+      <div class="result-val">${val ? val.slice(0, 64) + (val.length > 64 ? '...' : '') : '—'}</div>
+    </div>`;
+        }
+
+        function toggleStep(header) {
+            const body = header.nextElementSibling;
+            const chevron = header.querySelector('.step-chevron');
+            body.classList.toggle('open');
+            chevron.classList.toggle('open');
+        }
+
+        function downloadPlaintext(b64, encoding) {
+            const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            const ext = encoding ? 'txt' : 'bin';
+            const blob = new Blob([bytes], { type: encoding ? 'text/plain' : 'application/octet-stream' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `decrypted.${ext}`; a.click();
+        }
+
+        function escHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        setInterval(pollChannel, 4000);
+        pollChannel();
+    </script>
+</body>
+
+</html>
